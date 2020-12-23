@@ -1,15 +1,25 @@
 ---
+
 - name: Install some base libraries and packages
   hosts: localhost
   become: true
+  connection: local
   vars:
     pip_install_packages:
       - name: docker
     docker_compose_path: /usr/bin/docker-compose
     docker_users:
       - vagrant
+
   roles:
     - geerlingguy.pip
     - geerlingguy.docker
 
+  tasks:
+    - name: Create /opt/docker-compose directory
+      file:
+        state: directory
+        path: /opt/docker-compose
+        owner: vagrant
+        group: vagrant
 ...

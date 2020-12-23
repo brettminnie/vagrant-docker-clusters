@@ -1,0 +1,28 @@
+version: "3"
+services:
+  haproxy:
+    restart: always
+    image: haproxy-rabbitmq-cluster:1.8
+    build:
+      context: ./haproxy
+    container_name: haproxy
+    hostname: haproxy
+    ports:
+      - "5672:5672"
+      - "1936:1936"
+
+{% for item in range(0,3) %}
+  rabbitmq-{{ item }}:
+    image: rabbitmq:3.8-management-alpine
+    container_name: rabbitmq-{{ item }}
+    hostname: rabbitmq-{{ item }}
+    restart: always
+    ports:
+      - "1567{{ 2 + item }}:15672"
+    volumes:
+      - /data/rabbitmq-{{ item }}:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_ERLANG_COOKIE={{ rabbitmq_cluster_cookie }}
+      - RABBITMQ_DEFAULT_USER={{ rabbitmq_admin_user }}
+      - RABBITMQ_DEFAULT_PASS={{ rabbitmq_admin_password }}
+{% endfor %}

@@ -1,0 +1,66 @@
+---
+
+- name: Configure rabbitmq
+  hosts: localhost
+  connection: local
+  vars:
+    rabbitmq_cluster_cookie: "{{ lookup('env', 'RABBITMQ_CLUSTER_COOKIE') | default('cluster_cookie', true ) }}"
+    rabbitmq_admin_user: "{{ lookup('env', 'RABBITMQ_ADMIN_USER') | default('admin', true ) }}"
+    rabbitmq_admin_password: "{{ lookup('env', 'RABBITMQ_ADMIN_PASSWORD') | default('admin', true ) }}"
+
+  tasks:
+    - name: Create data directory
+      file:
+        state: directory
+        path: /data
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+      become: true
+
+    - name: Create our docker-compose template
+      template:
+        src: templates/rabbitmq-docker-compose.yml.j2
+        dest: /opt/docker-compose/rabbitmq-docker-compose.yml
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+
+    - name: Create our haproxy directory
+      file:
+        state: directory
+        path: /opt/docker-compose/haproxy
+
+    - name: Create our haproxy docker file
+      copy:
+        src: files/haproxy/Dockerfile
+        dest: /opt/docker-compose/haproxy/Dockerfile
+
+    - name: Create our haproxy config template
+      template:
+        src: files/haproxy/haproxy.cfg.j2
+        dest: /opt/docker-compose/haproxy/haproxy.cfg
+
+    - name: Start our docker-compose cluster
+      shell: |
+         docker-compose -f rabbitmq-docker-compose.yml up -d
+      args:
+        chdir: /opt/docker-compose
+
+    - name: Wait for our services to come up
+      pause:
+        seconds: 30
+
+    - name: Join our nodes to the rabbitmq cluster
+      shell: |
+        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl stop_app";
+        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl reset";
+        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl join_cluster rabbit@rabbitmq-0";
+        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl start_app"
+      loop:
+        - 1
+        - 2
+      loop_control:
+        loop_var: node
+
+...
