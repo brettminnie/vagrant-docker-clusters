@@ -14,6 +14,8 @@ can be specified via environment variables.
   - `RABBITMQ_CLUSTER_COOKIE` The name of the erlang cluster cookie(optional)
   - `RABBITMQ_ADMIN_USER` The name of the admin user for rabbitmq(optional default admin)
   - `RABBITMQ_ADMIN_PASSWORD` the password for rabbitmq admin(optional, default admin)
+  - `MYSQL_ROOT_PASSWORD`  the password for mysql root user(optional, default password)
+  - `MYSQL_REPLICATION_GROUP_NAME` the UID for the replication group(optional)
 
 ### Getting started
 
@@ -21,3 +23,8 @@ can be specified via environment variables.
   - `$ BOOTSTRAP_TARGET=RABBITMQ <RABBITMQ_ADMIN_USER=xxx> <RABBITMQ_ADMIN_PASSWORD=yyy> vagrant up`: This will bootstrap the vagrant image with a cluster of 3
     rabbitmq disc nodes. The admin interface is available on http://localhost:15672
   - Rabbitmq data is persisted on the vagrant host under /data/rabbitmq-< nodenumber >
+
+- ##### MySQL
+  - `$ BOOTSTRAP_TARGET=MYSQL <MYSQL_ROOT_PASSWORD=xxx> <MYSQL_REPLICATION_GROUP_NAME=yyy> vagrant up`: This will bootstrap the vagrant image with a cluster of 3
+    mysql nodes set up in master/slave replication
+  - Mysql data is persisted on the vagrant host under /data/rabbitmq-< nodenumber >

@@ -1,0 +1,100 @@
+---
+
+- name: Configure Mysql
+  hosts: localhost
+  connection: local
+  vars:
+    mysql_root_password: "{{ lookup('env', 'MYSQL_ROOT_PASSWORD') | default('password', true ) }}"
+    mysql_replication_group_name: "{{ lookup('env', 'MYSQL_REPLICATION_GROUP_NAME') | default('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', true ) }}"
+
+  tasks:
+    - name: Check for our clustering semaphore
+      stat:
+        path: /opt/docker-compose/mysql.cluster
+      register: mysql_clustered
+
+    - block:
+        - name: Create data directory
+          file:
+            state: directory
+            path: /data
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+          become: true
+
+        - name: Create our docker-compose template
+          template:
+            src: templates/mysql-docker-compose.yml.j2
+            dest: /opt/docker-compose/mysql-docker-compose.yml
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+
+        - name: Start our docker-compose mysql cluster
+          shell: |
+             docker-compose -f mysql-docker-compose.yml up -d
+          args:
+            chdir: /opt/docker-compose
+
+        - name: Wait for our services to come up
+          pause:
+            seconds: 60
+
+        - name: Bootstrap our cluster primary node
+          community.mysql.mysql_query:
+            login_db: mysql
+            login_user: root
+            login_password: "{{ mysql_root_password }}"
+            login_port: 3307
+            query:
+              - SET @@GLOBAL.group_replication_bootstrap_group=1
+              - CREATE USER IF NOT EXISTS 'repl'@'%'
+              - GRANT REPLICATION SLAVE ON *.* TO repl@'%'
+              - flush privileges
+              - change master to master_user='root' for channel 'group_replication_recovery'
+              - START GROUP_REPLICATION
+              - SET @@GLOBAL.group_replication_bootstrap_group=0
+              - SELECT * FROM performance_schema.replication_group_members
+
+        - name: Join our secondary nodes to the mysql cluster
+          community.mysql.mysql_query:
+            login_db: mysql
+            login_user: root
+            login_password: "{{ mysql_root_password }}"
+            login_port: "{{ port }}"
+            query:
+              - change master to master_user='repl' for channel 'group_replication_recovery'
+              - START GROUP_REPLICATION
+          loop:
+            - 3308
+            - 3309
+          loop_control:
+            loop_var: port
+
+        - name: Check our cluster status
+          community.mysql.mysql_query:
+            login_db: mysql
+            login_user: root
+            login_password: "{{ mysql_root_password }}"
+            login_port: "{{ port }}"
+            query:
+              - SHOW VARIABLES WHERE Variable_name = 'hostname'
+              - SELECT * FROM performance_schema.replication_group_members
+          loop:
+            - 3307
+            - 3308
+            - 3309
+          loop_control:
+            loop_var: port
+
+        - name: Create our semaphore
+          file:
+            path: /opt/docker-compose/mysql.cluster
+            state: touch
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+
+      when: not mysql_clustered.stat.exists
+...

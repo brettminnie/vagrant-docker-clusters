@@ -13,9 +13,16 @@ python -m pip install -U pip
 python -m pip install ansible
 
 ansible-galaxy install -r ansible/galaxy-requirements-base.yml
-ansible-playbook -c local ansible/playbook-base.yml
+ansible-playbook -c local -i ansible/hosts ansible/playbook-base.yml
 
 if [[ "${BOOTSTRAP_TARGET}" == "RABBITMQ" ]]; then
   echo "Installing and configuring RabbitMQ cluster"
-  ansible-playbook -c local ansible/playbook-rabbitmq.yml
+  ansible-playbook -c local -i ansible/hosts ansible/playbook-rabbitmq.yml
+fi
+
+if [[ "${BOOTSTRAP_TARGET}" == "MYSQL" ]]; then
+  echo "Installing and configuring MySql cluster"
+  ansible-galaxy collection install community.mysql
+  python -m pip install PyMySQL
+  ansible-playbook -c local -i ansible/hosts ansible/playbook-mysql.yml
 fi

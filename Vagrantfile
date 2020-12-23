@@ -17,10 +17,13 @@ Vagrant.configure("2") do |config|
   # Port forwards for Redis
   config.vm.network "forwarded_port", guest: 6379, host: 6379 if bootstrap_target != "RABBITMQ" and bootstrap_target != "MYSQL"
 
-  #Port forwards for RabbitMQ
+  # Port forwards for RabbitMQ
   config.vm.network "forwarded_port", guest: 5672, host: 5672 if bootstrap_target == "RABBITMQ"
   config.vm.network "forwarded_port", guest: 1936, host: 1936 if bootstrap_target == "RABBITMQ"
   config.vm.network "forwarded_port", guest: 15672, host: 15672 if bootstrap_target == "RABBITMQ"
+
+  # Port forwards for mysql
+  config.vm.network "forwarded_port", guest: 3306, host: 3306 if bootstrap_target == "MYSQL"
 
   config.vm.define "clusterhost" do |host|
     host.vm.hostname = "clusterhost"
