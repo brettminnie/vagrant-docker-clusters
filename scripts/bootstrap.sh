@@ -11,3 +11,6 @@ sudo apt-get install -y python3-pip
 python -m pip install -U pip
 #Install ansible
 python -m pip install ansible
+
+ansible-galaxy install -r ansible/galaxy-requirements-base.yml
+ansible-playbook -c local -i localhost ansible/playbook-base.yml

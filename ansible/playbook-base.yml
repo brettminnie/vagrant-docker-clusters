@@ -1,6 +1,6 @@
 ---
 - name: Install some base libraries and packages
-  hosts: all
+  hosts: localhost
   become: true
   vars:
     pip_install_packages:
