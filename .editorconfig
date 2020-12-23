@@ -1,0 +1,14 @@
+root = true
+
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = latin1
+indent_style = space
+indent_size = 2
+
+[*.yml]
+ij_yaml_keep_line_breaks = true
+ij_yaml_keep_indents_on_empty_lines = false
+
