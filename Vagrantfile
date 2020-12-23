@@ -1,5 +1,6 @@
 BOX_IMAGE = "ubuntu/bionic64"
 PRIVATE_IP = "10.0.0.2"
+bootstrap_target = ENV["BOOTSTRAP_TARGET"] || "REDIS"
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX_IMAGE
@@ -15,10 +16,10 @@ Vagrant.configure("2") do |config|
     dockerhost.vm.network :private_network, ip: PRIVATE_IP
     dockerhost.vm.provision "file", source: "./scripts/", destination: "/home/vagrant/"
     dockerhost.vm.provision "file", source: "./ansible/", destination: "/home/vagrant/"
-    dockerhost.vm.provision "shell", inline: <<-SHELL
+        dockerhost.vm.provision :shell, inline: <<-SHELL
         chmod +x /home/vagrant/scripts/*;
-        . /home/vagrant/scripts/bootstrap.sh
     SHELL
+    dockerhost.vm.provision "shell", path: "scripts/bootstrap.sh", env: {"BOOTSTRAP_TARGET" => bootstrap_target}
   end
 
 
