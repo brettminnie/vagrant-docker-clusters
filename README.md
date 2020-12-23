@@ -5,6 +5,8 @@ A single Ubuntu 18.04 vagrant instance that will spin up clustered products usin
 Currently, supported clusters are `redis`, `rabbitmq` and `mysql`. The default cluster type is `redis`, the other clusters
 can be specified via environment variables.
 
+All data is persisted on the vagrant host under `/data`, this is synced to the vm host under `.data/`
+
 ### Requirements
  - vagrant
  - virtualbox

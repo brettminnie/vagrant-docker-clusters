@@ -8,7 +8,7 @@ rabbitmq_admin_password = ENV["RABBITMQ_ADMIN_PASSWORD"] || "admin"
 Vagrant.configure("2") do |config|
   config.vm.box = BOX_IMAGE
   config.vm.box_check_update = false
-
+  config.vm.synced_folder ".data/", "/data", create: true
   config.vm.provider "virtualbox" do |l|
     l.cpus = 4
     l.memory = "8192"
@@ -24,6 +24,7 @@ Vagrant.configure("2") do |config|
 
   # Port forwards for mysql
   config.vm.network "forwarded_port", guest: 3306, host: 3306 if bootstrap_target == "MYSQL"
+  config.vm.network "forwarded_port", guest: 8080, host: 8080 if bootstrap_target == "MYSQL"
 
   config.vm.define "clusterhost" do |host|
     host.vm.hostname = "clusterhost"
