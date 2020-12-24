@@ -2,6 +2,9 @@
 
 echo "Bootstrapping $(hostname) with ip address $(hostname -I) for environment ${BOOTSTRAP_TARGET}"
 
+# Suppress stdin warnings
+export DEBIAN_FRONTEND=noninteractive
+
 # Ensure that python3 is symlinked to python
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 #update our apt cache
