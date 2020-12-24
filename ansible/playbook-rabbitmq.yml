@@ -47,9 +47,9 @@
       args:
         chdir: /opt/docker-compose
 
+    # We should use a pause here, however we get TTY warning on vagrant
     - name: Wait for our services to come up
-      pause:
-        seconds: 30
+      command: sleep 30
 
     - name: Join our nodes to the rabbitmq cluster
       shell: |
