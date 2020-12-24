@@ -3,11 +3,17 @@
 version: '3.5'
 
 services:
-  adminer:
-    image: adminer
+  phpmyadmin:
+    depends_on:
+      - mysql-0
+    image: phpmyadmin/phpmyadmin
     restart: always
     ports:
-      - 8080:8080
+      - 8080:80
+    environment:
+      PMA_HOST: mysql-0
+      MYSQL_ROOT_PASSWORD: {{ mysql_root_password }}
+
 {% for item in range(0,3) %}
   mysql-{{ item }}:
     image: mysql/mysql-server:8.0
