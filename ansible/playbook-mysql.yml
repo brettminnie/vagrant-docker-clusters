@@ -37,6 +37,7 @@
           args:
             chdir: /opt/docker-compose
 
+        # We should use a pause here, however we get TTY warning on vagrant
         - name: Wait for our services to come up
           command: sleep 60
 
@@ -72,22 +73,6 @@
           loop_control:
             loop_var: port
 
-        - name: Check our cluster status
-          community.mysql.mysql_query:
-            login_db: mysql
-            login_user: root
-            login_password: "{{ mysql_root_password }}"
-            login_port: "{{ port }}"
-            query:
-              - SHOW VARIABLES WHERE Variable_name = 'hostname'
-              - SELECT * FROM performance_schema.replication_group_members
-          loop:
-            - 3307
-            - 3308
-            - 3309
-          loop_control:
-            loop_var: port
-
         - name: Create our semaphore
           file:
             path: /opt/docker-compose/mysql.cluster
@@ -97,4 +82,26 @@
             mode: '0644'
 
       when: not mysql_clustered.stat.exists
+
+    - name: Check our cluster status
+      community.mysql.mysql_query:
+        login_db: mysql
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        login_port: "{{ port }}"
+        query:
+          - SHOW VARIABLES WHERE Variable_name = 'hostname'
+          - SELECT * FROM performance_schema.replication_group_members
+      loop:
+        - 3307
+        - 3308
+        - 3309
+      loop_control:
+        loop_var: port
+      register: mysql_result
+
+    - name: Ensure we have bootstrapped and are replicating
+      assert:
+        that:
+         - mysql_result.results[0].query_result[1] | length == 3
 ...
