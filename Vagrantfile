@@ -11,15 +11,13 @@ redis_password = ENV["REDIS_PASSWORD"] || "password"
 Vagrant.configure("2") do |config|
   config.vm.box = BOX_IMAGE
   config.vm.box_check_update = false
-  # This causes problems with the docker volumes so we only enable it for mysql and rabbitmq
-  config.vm.synced_folder ".data/", "/data", create: true, :mount_options => ["dmode=777", "fmode=666"] if bootstrap_target != "REDIS"
-  config.vm.provider "virtualbox" do |l|
-    l.cpus = 4
-    l.memory = "8192"
+  config.vm.provider "virtualbox" do |host|
+    host.cpus = 4
+    host.memory = "8192"
   end
 
   # Port forwards for Redis
-  config.vm.network "forwarded_port", guest: 6379, host: 6379 if bootstrap_target != "RABBITMQ" and bootstrap_target != "MYSQL"
+  config.vm.network "forwarded_port", guest: 6379, host: 6379 if bootstrap_target == "REDIS"
 
   # Port forwards for RabbitMQ
   config.vm.network "forwarded_port", guest: 5672, host: 5672 if bootstrap_target == "RABBITMQ"
@@ -48,6 +46,4 @@ Vagrant.configure("2") do |config|
         "REDIS_PASSWORD" => redis_password
     }
   end
-
-
 end
