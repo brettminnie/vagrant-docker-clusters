@@ -1,0 +1,58 @@
+---
+
+- name: Configure Redis
+  hosts: localhost
+  connection: local
+  vars:
+    redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('password', true ) }}"
+
+  tasks:
+    - name: Create data directory
+      file:
+        state: directory
+        path: /data
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+      become: true
+
+    - name: Stop docker service
+      systemd:
+        name: docker.service
+        state: stopped
+      become: true
+
+    - name: Update the systemd file so we can store our data volumes on the /data file root
+      lineinfile:
+        path: /lib/systemd/system/docker.service
+        regexp: '^ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock'
+        line: 'ExecStart=/usr/bin/dockerd --data-root /data/docker -H fd:// --containerd=/run/containerd/containerd.sock'
+        backrefs: true
+      become: true
+
+    - name: Start docker service
+      systemd:
+        name: docker.service
+        state: started
+        daemon_reload: true
+      become: true
+
+    - name: Create our docker-compose template
+      template:
+        src: templates/redis-docker-compose.yml.j2
+        dest: /opt/docker-compose/redis-docker-compose.yml
+        owner: vagrant
+        group: vagrant
+        mode: '0644'
+
+    - name: Start our docker-compose redis cluster
+      shell: |
+         docker-compose -f redis-docker-compose.yml up -d
+      args:
+        chdir: /opt/docker-compose
+
+    # We should use a pause here, however we get TTY warning on vagrant
+    - name: Wait for our services to come up
+      command: sleep 30
+
+...

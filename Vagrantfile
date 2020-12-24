@@ -4,11 +4,14 @@ bootstrap_target = ENV["BOOTSTRAP_TARGET"] || "REDIS"
 rabbitmq_cluster_cookie = ENV["RABBITMQ_CLUSTER_COOKIE"] || "cluster_cookie"
 rabbitmq_admin_user = ENV["RABBITMQ_ADMIN_USER"] || "admin"
 rabbitmq_admin_password = ENV["RABBITMQ_ADMIN_PASSWORD"] || "admin"
+mysql_root_password = ENV["MYSQL_ROOT_PASSWORD"] || "password"
+mysql_replication_group_name = ENV["MYSQL_REPLICATION_GROUP_NAME"] || "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+redis_password = ENV["REDIS_PASSWORD"] || "password"
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX_IMAGE
   config.vm.box_check_update = false
-  config.vm.synced_folder ".data/", "/data", create: true
+#   config.vm.synced_folder ".data/", "/data", create: true
   config.vm.provider "virtualbox" do |l|
     l.cpus = 4
     l.memory = "8192"
@@ -38,7 +41,10 @@ Vagrant.configure("2") do |config|
         "BOOTSTRAP_TARGET" => bootstrap_target,
         "RABBITMQ_CLUSTER_COOKIE" => rabbitmq_cluster_cookie,
         "RABBITMQ_ADMIN_USER" => rabbitmq_admin_user,
-        "RABBITMQ_ADMIN_PASSWORD" => rabbitmq_admin_password
+        "RABBITMQ_ADMIN_PASSWORD" => rabbitmq_admin_password,
+        "MYSQL_ROOT_PASSWORD" => mysql_root_password,
+        "MYSQL_REPLICATION_GROUP_NAME" => mysql_replication_group_name,
+        "REDIS_PASSWORD" => redis_password
     }
   end
 

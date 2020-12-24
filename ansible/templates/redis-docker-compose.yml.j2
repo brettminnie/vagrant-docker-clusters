@@ -1,0 +1,34 @@
+---
+
+version: '2'
+services:
+{% for item in range(0,6) %}
+  redis-node-{{ item }}:
+    image: docker.io/bitnami/redis-cluster:6.0-debian-10
+    volumes:
+      - redis-cluster_data-{{ item }}:/bitnami/redis/data
+    environment:
+      - 'REDIS_PASSWORD={{ redis_password }}'
+      - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
+{% endfor %}
+
+  redis-cluster-init:
+    image: docker.io/bitnami/redis-cluster:6.0-debian-10
+    depends_on:
+    {% for item in range(0,6) %}
+      - redis-node-{{ item }}
+    {% endfor %}
+
+    environment:
+      - 'REDISCLI_AUTH={{ redis_password }}'
+      - 'REDIS_CLUSTER_REPLICAS=1'
+      - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
+      - 'REDIS_CLUSTER_CREATOR=yes'
+
+
+volumes:
+{% for item in range(0,6) %}
+  redis-cluster_data-{{ item }}:
+    driver: local
+{% endfor %}
+...
