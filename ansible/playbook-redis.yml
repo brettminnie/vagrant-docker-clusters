@@ -66,9 +66,10 @@
           args:
             chdir: /opt/docker-compose
 
-        # We should use a pause here, however we get TTY warning on vagrant
         - name: Wait for our services to come up
-          command: sleep 30
+          wait_for:
+            port: 6379
+            delay: 30
 
         - name: Create our semaphore
           file:

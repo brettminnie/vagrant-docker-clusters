@@ -47,9 +47,10 @@
           args:
             chdir: /opt/docker-compose
 
-        # We should use a pause here, however we get TTY warning on vagrant
         - name: Wait for our services to come up
-          command: sleep 60
+          wait_for:
+            port: 3307
+            delay: 60
 
         - name: Bootstrap our cluster primary node
           community.mysql.mysql_query:
