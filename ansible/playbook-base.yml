@@ -22,4 +22,36 @@
         path: /opt/docker-compose
         owner: vagrant
         group: vagrant
+
+    - name: Install ufw packages
+      pip:
+        name: ufw
+        state: present
+
+    - name: Allow everything and enable UFW
+      ufw:
+        state: enabled
+        policy: allow
+        logging: medium
+
+    - name: Enable firewall rules
+      ufw:
+        rule: allow
+        port: "{{ port_number }}"
+      loop:
+        - '22'
+        - '2222'
+      loop_control:
+        loop_var: port_number
+
+    - name: Deny everything and reset UFW
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Ensure that the UFW service is enabled on boot
+      service:
+        name: ufw
+        enabled: true
+        state: started
 ...
