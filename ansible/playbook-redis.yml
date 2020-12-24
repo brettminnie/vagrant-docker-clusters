@@ -21,6 +21,15 @@
         mode: '0644'
       become: true
 
+    - name: Enable firewall rules
+      ufw:
+        rule: allow
+        port: "{{ port_number }}"
+      loop:
+        - '6379'
+      loop_control:
+        loop_var: port_number
+
     - block:
         - name: Stop docker service
           systemd:
@@ -82,6 +91,5 @@
     - name: Assert our cluster is created
       assert:
         that:
-          - "Cluster correctly created" in docker_logs.stdout_lines
-
+          - '"Cluster correctly created" in docker_logs.stdout_lines'
 ...
