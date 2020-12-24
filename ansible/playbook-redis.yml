@@ -7,6 +7,11 @@
     redis_password: "{{ lookup('env', 'REDIS_PASSWORD') | default('password', true ) }}"
 
   tasks:
+    - name: Check for our clustering semaphore
+      stat:
+        path: /opt/docker-compose/redis.cluster
+      register: redis_clustered
+
     - name: Create data directory
       file:
         state: directory
@@ -16,43 +21,67 @@
         mode: '0644'
       become: true
 
-    - name: Stop docker service
-      systemd:
-        name: docker.service
-        state: stopped
-      become: true
+    - block:
+        - name: Stop docker service
+          systemd:
+            name: docker.service
+            state: stopped
+          become: true
 
-    - name: Update the systemd file so we can store our data volumes on the /data file root
-      lineinfile:
-        path: /lib/systemd/system/docker.service
-        regexp: '^ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock'
-        line: 'ExecStart=/usr/bin/dockerd --data-root /data/docker -H fd:// --containerd=/run/containerd/containerd.sock'
-        backrefs: true
-      become: true
+        - name: Update the systemd file so we can store our data volumes on the /data file root
+          lineinfile:
+            path: /lib/systemd/system/docker.service
+            regexp: '^ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock'
+            line: 'ExecStart=/usr/bin/dockerd --data-root /data/docker -H fd:// --containerd=/run/containerd/containerd.sock'
+            backrefs: true
+          become: true
 
-    - name: Start docker service
-      systemd:
-        name: docker.service
-        state: started
-        daemon_reload: true
-      become: true
+        - name: Start docker service
+          systemd:
+            name: docker.service
+            state: started
+            daemon_reload: true
+          become: true
 
-    - name: Create our docker-compose template
-      template:
-        src: templates/redis-docker-compose.yml.j2
-        dest: /opt/docker-compose/redis-docker-compose.yml
-        owner: vagrant
-        group: vagrant
-        mode: '0644'
+        - name: Create our docker-compose template
+          template:
+            src: templates/redis-docker-compose.yml.j2
+            dest: /opt/docker-compose/redis-docker-compose.yml
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
 
-    - name: Start our docker-compose redis cluster
-      shell: |
-         docker-compose -f redis-docker-compose.yml up -d
-      args:
-        chdir: /opt/docker-compose
+        - name: Start our docker-compose redis cluster
+          shell: |
+             docker-compose -f redis-docker-compose.yml up -d
+          args:
+            chdir: /opt/docker-compose
 
-    # We should use a pause here, however we get TTY warning on vagrant
-    - name: Wait for our services to come up
-      command: sleep 30
+        # We should use a pause here, however we get TTY warning on vagrant
+        - name: Wait for our services to come up
+          command: sleep 30
+
+        - name: Create our semaphore
+          file:
+            path: /opt/docker-compose/redis.cluster
+            state: touch
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+
+      when: not redis_clustered.stat.exists
+
+    - name: Check our cluster status
+      shell: "docker ps -a | grep cluster-init | cut -d' ' -f1"
+      register: docker_id
+
+    - name: Get our logs
+      shell: "docker logs {{ docker_id.stdout | trim }}"
+      register: docker_logs
+
+    - name: Assert our cluster is created
+      assert:
+        that:
+          - "Cluster correctly created" in docker_logs.stdout_lines
 
 ...
