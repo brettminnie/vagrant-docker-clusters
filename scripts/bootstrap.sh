@@ -25,7 +25,10 @@ then
   ansible-galaxy collection install community.mysql
   python -m pip install PyMySQL
   ansible-playbook -c local -i ansible/hosts ansible/playbook-mysql.yml
-else
+elif [[ "${BOOTSTRAP_TARGET}" == "REDIS" ]]
+then
   echo "Installing and configuring Redis cluster"
   ansible-playbook -c local -i ansible/hosts ansible/playbook-redis.yml
+else
+  echo "No environment targeted, must be one of RABBITMQ, MYSQL or REDIS"
 fi
