@@ -9,58 +9,97 @@
     rabbitmq_admin_password: "{{ lookup('env', 'RABBITMQ_ADMIN_PASSWORD') | default('admin', true ) }}"
 
   tasks:
-    - name: Create data directory
-      file:
-        state: directory
-        path: /data
-        owner: vagrant
-        group: vagrant
-        mode: '0644'
-      become: true
 
-    - name: Create our docker-compose template
-      template:
-        src: templates/rabbitmq-docker-compose.yml.j2
-        dest: /opt/docker-compose/rabbitmq-docker-compose.yml
-        owner: vagrant
-        group: vagrant
-        mode: '0644'
-
-    - name: Create our haproxy directory
-      file:
-        state: directory
-        path: /opt/docker-compose/haproxy
-
-    - name: Create our haproxy docker file
-      copy:
-        src: files/haproxy/Dockerfile
-        dest: /opt/docker-compose/haproxy/Dockerfile
-
-    - name: Create our haproxy config template
-      template:
-        src: files/haproxy/haproxy.cfg.j2
-        dest: /opt/docker-compose/haproxy/haproxy.cfg
-
-    - name: Start our docker-compose cluster
-      shell: |
-         docker-compose -f rabbitmq-docker-compose.yml up -d
-      args:
-        chdir: /opt/docker-compose
-
-    # We should use a pause here, however we get TTY warning on vagrant
-    - name: Wait for our services to come up
-      command: sleep 30
-
-    - name: Join our nodes to the rabbitmq cluster
-      shell: |
-        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl stop_app";
-        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl reset";
-        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl join_cluster rabbit@rabbitmq-0";
-        docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl start_app"
+    - name: Enable firewall rules
+      ufw:
+        rule: allow
+        port: "{{ port_number }}"
       loop:
-        - 1
-        - 2
+        - '1936'
+        - '5672'
+        - '15672'
       loop_control:
-        loop_var: node
+        loop_var: port_number
 
+    - name: Check for our clustering semaphore
+      stat:
+        path: /opt/docker-compose/rabbitmq.cluster
+      register: rabbitmq_clustered
+
+    - block:
+        - name: Create data directory
+          file:
+            state: directory
+            path: /data
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+          become: true
+
+        - name: Create our docker-compose template
+          template:
+            src: templates/rabbitmq-docker-compose.yml.j2
+            dest: /opt/docker-compose/rabbitmq-docker-compose.yml
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+
+        - name: Create our haproxy directory
+          file:
+            state: directory
+            path: /opt/docker-compose/haproxy
+
+        - name: Create our haproxy docker file
+          copy:
+            src: files/haproxy/Dockerfile
+            dest: /opt/docker-compose/haproxy/Dockerfile
+
+        - name: Create our haproxy config template
+          template:
+            src: files/haproxy/haproxy.cfg.j2
+            dest: /opt/docker-compose/haproxy/haproxy.cfg
+
+        - name: Start our docker-compose cluster
+          shell: |
+             docker-compose -f rabbitmq-docker-compose.yml up -d
+          args:
+            chdir: /opt/docker-compose
+
+        # We should use a pause here, however we get TTY warning on vagrant
+        - name: Wait for our services to come up
+          command: sleep 30
+
+        - name: Join our nodes to the rabbitmq cluster
+          shell: |
+            docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl stop_app";
+            docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl reset";
+            docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl join_cluster rabbit@rabbitmq-0";
+            docker exec rabbitmq-{{ node }} bash -c "rabbitmqctl start_app"
+          loop:
+            - 1
+            - 2
+          loop_control:
+            loop_var: node
+
+        - name: Create our semaphore
+          file:
+            path: /opt/docker-compose/rabbitmq.cluster
+            state: touch
+            owner: vagrant
+            group: vagrant
+            mode: '0644'
+
+      when: not rabbitmq_clustered.stat.exists
+
+    - name: Get our cluster status
+      shell: |
+        docker exec rabbitmq-0 bash -c "rabbitmqctl cluster_status"
+      register: cluster_status
+
+    - name: Assert our cluster is running
+      assert:
+        that:
+          - '"Node: rabbit@rabbitmq-0, interface: [::], port: 15672, protocol: http, purpose: HTTP API" in cluster_status.stdout_lines'
+          - '"Node: rabbit@rabbitmq-1, interface: [::], port: 15672, protocol: http, purpose: HTTP API" in cluster_status.stdout_lines'
+          - '"Node: rabbit@rabbitmq-2, interface: [::], port: 15672, protocol: http, purpose: HTTP API" in cluster_status.stdout_lines'
 ...
