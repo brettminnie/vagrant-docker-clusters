@@ -18,6 +18,7 @@ All data is persisted on the vagrant host under `/data`, this is synced to the v
   - `RABBITMQ_ADMIN_PASSWORD` the password for rabbitmq admin(optional, default admin)
   - `MYSQL_ROOT_PASSWORD`  the password for mysql root user(optional, default password)
   - `MYSQL_REPLICATION_GROUP_NAME` the UID for the replication group(optional)
+  - `REDIS_PASSWORD` the password for our redis cluster (optional, default password)
 
 ### Getting started
 
@@ -30,3 +31,12 @@ All data is persisted on the vagrant host under `/data`, this is synced to the v
   - `$ BOOTSTRAP_TARGET=MYSQL <MYSQL_ROOT_PASSWORD=xxx> <MYSQL_REPLICATION_GROUP_NAME=yyy> vagrant up`: This will bootstrap the vagrant image with a cluster of 3
     mysql nodes set up in master/slave replication
   - Mysql data is persisted on the vagrant host under /data/rabbitmq-< nodenumber >
+  - PHPMyAdmin is installed and availble via http://localhost:8080
+
+- ##### Redis
+  - `$ BOOTSTRAP_TARGET=REDIS <REDIS_PASSWORD=xxx> vagrant up`: This will bootstrap the vagrant image with a cluster of 3 redis nodes and a temporary container that creates the cluster
+  - Redis data is persisted in docker volumes and not directly on disk. These are located in `/data/docker/volumes`
+
+When creating an environment, only the ports required for that cluster are exposed, so if you want to create a new cluster
+it is best to run a `vagrant destroy` followed by a vagrant up with the services you require.
+
