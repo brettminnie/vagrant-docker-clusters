@@ -11,7 +11,8 @@ redis_password = ENV["REDIS_PASSWORD"] || "password"
 Vagrant.configure("2") do |config|
   config.vm.box = BOX_IMAGE
   config.vm.box_check_update = false
-#   config.vm.synced_folder ".data/", "/data", create: true
+  # This causes problems with the docker volumes
+#   config.vm.synced_folder ".data/", "/data", create: true, :mount_options => ["dmode=777", "fmode=666"]
   config.vm.provider "virtualbox" do |l|
     l.cpus = 4
     l.memory = "8192"
